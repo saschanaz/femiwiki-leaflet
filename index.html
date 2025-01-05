@@ -13,12 +13,16 @@
     color-scheme: light dark;
     margin: 0;
     padding: 0;
+    height: 100%;
     font-family: sans-serif;
+  }
+  ul {
+    padding-left: 1em;
   }
   #grid {
     display: grid;
     grid-template-rows: auto 1fr;
-    height: 100vh;
+    height: 100%;
   }
   #map {
     grid-row: 2;
@@ -27,32 +31,78 @@
 <div id="grid">
   <p>
     분류:
-    <label><input type="checkbox" name="checkbox" value="페미니즘" checked onchange="onCheckChanged()">페미니즘</label>
-    <label><input type="checkbox" name="checkbox" value="퀴어" checked onchange="onCheckChanged()">퀴어</label>
+    <label><input type="checkbox" name="checkbox" value="페미니즘" checked>페미니즘</label>
+    <label><input type="checkbox" name="checkbox" value="퀴어" checked>퀴어</label>
   </p>
   <div id="map"></div>
 </div>
-<script>
-  const allList = [
-    {
-      name: "여성민우회",
-      latitude: 37.55961295160903,
-      longitude: 126.90994152614289,
-      tags: ['페미니즘']
-    },
-    {
-      name: "한국여성의전화",
-      latitude: 37.60981565909597,
-      longitude: 126.9388992261446,
-      tags: ['페미니즘']
-    },
-    {
-      name: "트랜스해방전선",
-      latitude: 37.47088856346214,
-      longitude: 126.93024040437118,
-      tags: ['퀴어']
+<script type="module">
+  import regionMap from "./region-map.js";
+
+  async function fetchAllList() {
+    const res = await fetch("./sheet.tsv");
+    if (!res.ok) {
+      throw new Error("Failed to fetch list", { cause: res });
     }
-  ]
+    const text = await res.text();
+    const rows = text.split("\n");
+    rows.shift();
+    rows.pop();
+
+    const list = [];
+    for (const row of rows) {
+      const columns = row.split("\t");
+      if (!columns[2]) {
+        continue;
+      }
+      list.push({
+        name: columns[1] || columns[0],
+        region: columns[2],
+        tags: columns[3].split(","),
+      });
+    }
+
+    return list;
+  }
+
+  function loadFromList(list) {
+    currentLayer?.remove();
+
+    const regions = new Map();
+    for (const entry of list) {
+      const entries = regions.get(entry.region) ?? [];
+      entries.push(entry);
+      regions.set(entry.region, entries);
+    }
+
+    const circles = [];
+    for (const [region, entries] of regions) {
+      const [longitude, latitude] = regionMap[region];
+      const circle = L.circle([longitude, latitude], { radius: 5000 })
+
+      const content = `
+        <h2>${region} 지역:</h2>
+        <ul>
+          ${entries.map(entry => `<li><a href="https://femiwiki.com/w/${entry.name}">${entry.name}</a></li>`).join("")}
+        </ul>
+      `
+      circle.bindPopup(content);
+      circles.push(circle);
+    }
+    currentLayer = L.layerGroup(circles).addTo(map);
+  }
+
+  function onCheckChanged() {
+    const tags = [...document.getElementsByName("checkbox")].filter(el => el.checked).map(el => el.value);
+    const list = allList.filter(entry => entry.tags.some(tag => tags.includes(tag)));
+    loadFromList(list);
+  }
+
+  for (const checkbox of document.getElementsByName("checkbox")) {
+    checkbox.onchange = onCheckChanged;
+  }
+
+  const allList = await fetchAllList();
 
   const map = L.map('map').setView([36.69, 127.95], 8);
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -61,26 +111,6 @@
   }).addTo(map);
 
   let currentLayer;
-
-  function loadFromList(list) {
-    currentLayer?.remove();
-
-    const markers = [];
-    for (const entry of list) {
-      const marker = L.marker([entry.latitude, entry.longitude])
-
-      const content = `<p>${entry.name}</p><p>${entry.tags.map(tag => `#${tag}`).join(" ")}</p>`
-      marker.bindPopup(content);
-      markers.push(marker);
-    }
-    currentLayer = L.layerGroup(markers).addTo(map);
-  }
-
-  function onCheckChanged() {
-    const tags = [...document.getElementsByName("checkbox")].filter(el => el.checked).map(el => el.value);
-    const list = allList.filter(entry => entry.tags.some(tag => tags.includes(tag)));
-    loadFromList(list);
-  }
 
   loadFromList(allList);
 </script>
