@@ -8,14 +8,28 @@
     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
     crossorigin></script>
 <style>
-  #map { height: 700px; }
+  html, body {
+    color-scheme: light dark;
+    margin: 0;
+    padding: 0;
+  }
+  #grid {
+    display: grid;
+    grid-template-rows: auto 1fr;
+    height: 100vh;
+  }
+  #map {
+    grid-row: 2;
+  }
 </style>
-<p>
-  분류:
-  <label><input type="checkbox" name="checkbox" value="페미니즘" checked onchange="onCheckChanged()">페미니즘</label>
-  <label><input type="checkbox" name="checkbox" value="퀴어" checked onchange="onCheckChanged()">퀴어</label>
-</p>
-<div id="map"></div>
+<div id="grid">
+  <p>
+    분류:
+    <label><input type="checkbox" name="checkbox" value="페미니즘" checked onchange="onCheckChanged()">페미니즘</label>
+    <label><input type="checkbox" name="checkbox" value="퀴어" checked onchange="onCheckChanged()">퀴어</label>
+  </p>
+  <div id="map"></div>
+</div>
 <script>
   const allList = [
     {
