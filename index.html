@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+  crossorigin>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin></script>
+<style>
+  #map { height: 700px; }
+</style>
+<p>
+  분류:
+  <label><input type="checkbox" name="checkbox" value="페미니즘" checked onchange="onCheckChanged()">페미니즘</label>
+  <label><input type="checkbox" name="checkbox" value="퀴어" checked onchange="onCheckChanged()">퀴어</label>
+</p>
+<div id="map"></div>
+<script>
+  const allList = [
+    {
+      name: "여성민우회",
+      latitude: 37.55961295160903,
+      longitude: 126.90994152614289,
+      tags: ['페미니즘']
+    },
+    {
+      name: "한국여성의전화",
+      latitude: 37.60981565909597,
+      longitude: 126.9388992261446,
+      tags: ['페미니즘']
+    },
+    {
+      name: "트랜스해방전선",
+      latitude: 37.47088856346214,
+      longitude: 126.93024040437118,
+      tags: ['퀴어']
+    }
+  ]
+
+  const map = L.map('map').setView([36.69, 127.95], 8);
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+  }).addTo(map);
+
+  let currentLayer;
+
+  function loadFromList(list) {
+    currentLayer?.remove();
+
+    const markers = [];
+    for (const entry of list) {
+      const marker = L.marker([entry.latitude, entry.longitude])
+
+      const content = `<p>${entry.name}</p><p>${entry.tags.map(tag => `#${tag}`).join(" ")}</p>`
+      marker.bindPopup(content);
+      markers.push(marker);
+    }
+    currentLayer = L.layerGroup(markers).addTo(map);
+  }
+
+  function onCheckChanged() {
+    const tags = [...document.getElementsByName("checkbox")].filter(el => el.checked).map(el => el.value);
+    const list = allList.filter(entry => entry.tags.some(tag => tags.includes(tag)));
+    loadFromList(list);
+  }
+
+  loadFromList(allList);
+</script>
