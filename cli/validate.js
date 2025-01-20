@@ -3,7 +3,7 @@ const lines = file.split("\n");
 lines.shift();
 const countMap = new Map();
 for (const line of lines) {
-  const name = line.split("\t")[0];
+  const name = line.split("\t")[0].trim();
   let count = countMap.get(name) ?? 0;
   ++count;
   countMap.set(name, count);
