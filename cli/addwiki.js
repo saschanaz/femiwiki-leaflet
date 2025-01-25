@@ -37,6 +37,7 @@ lines.shift();
 const map = new Map();
 for (const line of lines) {
   const [
+    _wikiUrl,
     name,
     fullName,
     region,
@@ -81,7 +82,7 @@ for (const [name, object] of map) {
   const existing = await client.tryGet(docName);
   if (existing.ok) {
     nameWikiMap.set(name, existing.data.id);
-    console.log(`${docName} already has a document: ${existing.data.id}`);
+    console.log(`${name}: https://femiwiki.com/?curid=${existing.data.id}`);
     continue;
   }
 
@@ -94,13 +95,13 @@ for (const [name, object] of map) {
     !object.coalition
   ) {
     skipped.push(name);
-    console.log(`${docName} does not have enough fields, skipping.`);
+    console.log(`${name}:`);
     continue;
   }
 
   console.log(`${docName} is missing a document, creating...`);
   try {
-    const tags = object.tags?.split(",");
+    const tags = object.tags?.split(",").map(tag => tag.trim());
     const linkedTags = tags?.map((tag) => `[[${tag}]]`).join(", ");
     const linkedTagsWithSpace = linkedTags ? `${linkedTags} ` : "";
     const ofRegion = object.school || object.region;

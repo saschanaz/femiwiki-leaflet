@@ -64,6 +64,17 @@ export class WikiRestClient {
 
   /** @param {string} title */
   async tryGet(title) {
-    return await this.tryRequest("GET", `v1/page/${encodeURIComponent(title)}`);
+    let target = `v1/page/${encodeURIComponent(title)}`;
+    while (target) {
+      const result = await this.tryRequest("GET", target);
+      if (!result.ok || !result.data.redirect_target) {
+        return result;
+      }
+      console.log(`(Redirecting to ${result.data.redirect_target})`)
+      target = new URL(
+        result.data.redirect_target,
+        new URL(this.apiBase).origin
+      );
+    }
   }
 }
