@@ -37,7 +37,7 @@ lines.shift();
 const map = new Map();
 for (const line of lines) {
   const [
-    _wikiUrl,
+    wikiUrl,
     name,
     fullName,
     region,
@@ -51,6 +51,7 @@ for (const line of lines) {
     coalition,
   ] = line.split("\t");
   map.set(name, {
+    wikiUrl,
     name,
     fullName,
     region,
@@ -67,7 +68,6 @@ for (const line of lines) {
 
 const skipped = [];
 const errored = [];
-const nameWikiMap = new Map();
 
 for (const [name, object] of map) {
   const docName = (() => {
@@ -79,10 +79,15 @@ for (const [name, object] of map) {
       .replace(">", "'");
   })();
 
-  const existing = await client.tryGet(docName);
-  if (existing.ok) {
-    nameWikiMap.set(name, existing.data.id);
-    console.log(`${name}: https://femiwiki.com/?curid=${existing.data.id}`);
+  let { wikiUrl } = object;
+  if (!wikiUrl) {
+    const existing = await client.tryGet(docName);
+    if (existing.ok) {
+      wikiUrl = `https://femiwiki.com/?curid=${existing.data.id}`;
+    }
+  }
+  if (wikiUrl) {
+    console.log(`${name}: ${wikiUrl}`);
     continue;
   }
 
@@ -101,7 +106,7 @@ for (const [name, object] of map) {
 
   console.log(`${docName} is missing a document, creating...`);
   try {
-    const tags = object.tags?.split(",").map(tag => tag.trim());
+    const tags = object.tags?.split(",").map((tag) => tag.trim());
     const linkedTags = tags?.map((tag) => `[[${tag}]]`).join(", ");
     const linkedTagsWithSpace = linkedTags ? `${linkedTags} ` : "";
     const ofRegion = object.school || object.region;
@@ -131,6 +136,5 @@ for (const [name, object] of map) {
   }
 }
 
-console.log(nameWikiMap);
 console.log(`Skipped: ${skipped}`);
 console.log(`Errored: ${errored}`);
