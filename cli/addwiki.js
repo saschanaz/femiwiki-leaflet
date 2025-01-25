@@ -33,7 +33,7 @@ const client = new WikiRestClient(
 
 const file = await Deno.readTextFile(new URL("../sheet.tsv", import.meta.url));
 const lines = file.split("\n");
-lines.shift();
+const headers = lines.shift();
 const map = new Map();
 for (const line of lines) {
   const [
@@ -49,6 +49,8 @@ for (const line of lines) {
     linktree,
     twitter,
     coalition,
+    currentActivity,
+    ceased,
   ] = line.split("\t");
   map.set(name, {
     wikiUrl,
@@ -63,6 +65,8 @@ for (const line of lines) {
     linktree,
     twitter,
     coalition,
+    currentActivity,
+    ceased,
   });
 }
 
@@ -79,15 +83,19 @@ for (const [name, object] of map) {
       .replace(">", "'");
   })();
 
-  let { wikiUrl } = object;
-  if (!wikiUrl) {
-    const existing = await client.tryGet(docName);
-    if (existing.ok) {
-      wikiUrl = `https://femiwiki.com/?curid=${existing.data.id}`;
+  if (!object.wikiUrl || Deno.args.includes("--recheck")) {
+    try {
+      const existing = await client.tryGet(docName);
+      if (existing.ok) {
+        object.wikiUrl = `https://femiwiki.com/?curid=${existing.data.id}`;
+      }
+    } catch (err) {
+      console.error(`(Fetching ${name} failed: ${err})`);
+      continue;
     }
   }
-  if (wikiUrl) {
-    console.log(`${name}: ${wikiUrl}`);
+  if (object.wikiUrl) {
+    console.log(`${name}: ${object.wikiUrl}`);
     continue;
   }
 
@@ -128,7 +136,7 @@ for (const [name, object] of map) {
       comment:
         "[[페미위키:단체 활동 기록 프로젝트]]의 일환으로 일괄 생성한 문서입니다.",
     });
-    nameWikiMap.set(name, data.id);
+    object.wikiUrl = `https://femiwiki.com/?curid=${data.id}`;
   } catch (err) {
     errored.push(name);
     console.error(err);
@@ -138,3 +146,44 @@ for (const [name, object] of map) {
 
 console.log(`Skipped: ${skipped}`);
 console.log(`Errored: ${errored}`);
+
+const newText = [
+  headers,
+  ...(function* () {
+    for (const object of map.values()) {
+      const {
+        wikiUrl,
+        name,
+        fullName,
+        region,
+        tags,
+        school,
+        website,
+        instagram,
+        facebook,
+        linktree,
+        twitter,
+        coalition,
+        currentActivity,
+        ceased,
+      } = object;
+      yield [
+        wikiUrl,
+        name,
+        fullName,
+        region,
+        tags,
+        school,
+        website,
+        instagram,
+        facebook,
+        linktree,
+        twitter,
+        coalition,
+        currentActivity,
+        ceased,
+      ].join("\t");
+    }
+  })(),
+].join("\n");
+await Deno.writeTextFile(new URL("../sheet.tsv", import.meta.url), newText);
