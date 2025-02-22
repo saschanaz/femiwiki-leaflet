@@ -1,4 +1,14 @@
-export class WikiRestClient {
+function jsonToFormData(object) {
+  const formData = new FormData();
+
+  for (const [key, value] of Object.entries(object)) {
+    formData.append(key, value);
+  }
+
+  return formData;
+}
+
+export class MediaWikiClient {
   /**
    * @param {string} apiBase
    * @param {string} bearer
@@ -45,6 +55,29 @@ export class WikiRestClient {
   }
 
   /**
+   * @param {string} method
+   * @param {string} action
+   * @param {object} params
+   * @returns {Promise<object>}
+   */
+  async tryRequestAction(action, params) {
+    const url = new URL(this.apiBase);
+    url.searchParams.set("format", "json");
+    url.searchParams.set("action", action);
+    const body= new URLSearchParams(params).toString()
+    const res = await fetch(url, {
+      method: "post",
+      body,
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        Authorization: `Bearer ${this.bearer}`,
+      },
+    });
+    const result = await res.json();
+    return result;
+  }
+
+  /**
    * @param {string} title
    * @param {object} params
    * @param {string} params.source
@@ -70,7 +103,7 @@ export class WikiRestClient {
       if (!result.ok || !result.data.redirect_target) {
         return result;
       }
-      console.log(`(Redirecting to ${result.data.redirect_target})`)
+      console.log(`(Redirecting to ${result.data.redirect_target})`);
       target = new URL(
         result.data.redirect_target,
         new URL(this.apiBase).origin
